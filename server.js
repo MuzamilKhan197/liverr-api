@@ -1,6 +1,7 @@
 import "dotenv/config";
 import mongoose from "mongoose";
 import app from "./app.js";
+import connectToDatabase from "./utils/connectToDatabase.js";
 
 const required = ["MONGO_URI", "JWT_KEY"];
 const missing = required.filter((name) => !process.env[name]);
@@ -30,7 +31,7 @@ if (!Number.isInteger(port) || port < 1 || port > 65535) {
 }
 
 try {
-  await mongoose.connect(process.env.MONGO_URI);
+  await connectToDatabase();
   const server = app.listen(port, () => {
     console.info(`API listening on port ${port}`);
   });

@@ -7,7 +7,7 @@ import { uploadImageFile } from "../controllers/uploadController.js";
 const router = Router();
 const receiveImage = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+  limits: { fileSize: 4 * 1024 * 1024, files: 1 },
 }).single("file");
 
 const uploadLimiter = rateLimit({
@@ -24,7 +24,7 @@ router.post("/", uploadLimiter, (req, res, next) => {
       return uploadImageFile(req, res, next);
     }
     if (error.code === "LIMIT_FILE_SIZE") {
-      return next(createError(413, "Image must be 5 MB or smaller."));
+      return next(createError(413, "Image must be 4 MB or smaller."));
     }
     return next(createError(400, "Invalid image upload."));
   });

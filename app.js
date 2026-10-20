@@ -1,6 +1,5 @@
 import "dotenv/config";
 import express from "express";
-import mongoose from "mongoose";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
@@ -14,6 +13,7 @@ import messageRoute from "./routes/messageRoute.js";
 import reviewRoute from "./routes/reviewRoute.js";
 import uploadRoute from "./routes/uploadRoute.js";
 import createError from "./utils/createError.js";
+import connectToDatabase from "./utils/connectToDatabase.js";
 
 const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:5173")
   .split(",")
@@ -47,13 +47,23 @@ app.use((req, res, next) => {
   return next();
 });
 
-app.get("/health", (req, res) => {
-  const connected = mongoose.connection.readyState === 1;
-  res.status(connected ? 200 : 503).json({
-    status: connected ? "ok" : "unavailable",
-    database: connected ? "connected" : "disconnected",
-  });
+app.get("/health", async (req, res) => {
+  try {
+    await connectToDatabase();
+    return res.status(200).json({ status: "ok", database: "connected" });
+  } catch {
+    return res
+      .status(503)
+      .json({ status: "unavailable", database: "disconnected" });
+  }
 });
+
+const ensureDatabaseConnection = (req, res, next) => {
+  connectToDatabase().then(
+    () => next(),
+    (error) => next(error),
+  );
+};
 
 app.get("/live", (req, res) => {
   res.status(200).json({ status: "ok" });
@@ -67,13 +77,13 @@ const authLimiter = rateLimit({
   message: { message: "Too many authentication attempts. Try again later." },
 });
 
-app.use("/api/auth", authLimiter, authRoute);
-app.use("/api/users", userRoute);
-app.use("/api/gigs", gigRoute);
-app.use("/api/orders", orderRoute);
-app.use("/api/conversations", conversationRoute);
-app.use("/api/messages", messageRoute);
-app.use("/api/reviews", reviewRoute);
+app.use("/api/auth", authLimiter, ensureDatabaseConnection, authRoute);
+app.use("/api/users", ensureDatabaseConnection, userRoute);
+app.use("/api/gigs", ensureDatabaseConnection, gigRoute);
+app.use("/api/orders", ensureDatabaseConnection, orderRoute);
+app.use("/api/conversations", ensureDatabaseConnection, conversationRoute);
+app.use("/api/messages", ensureDatabaseConnection, messageRoute);
+app.use("/api/reviews", ensureDatabaseConnection, reviewRoute);
 app.use("/api/upload", uploadRoute);
 
 app.use((req, res, next) => {

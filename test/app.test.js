@@ -33,3 +33,15 @@ test("mutation requests reject an untrusted browser origin", async () => {
   assert.equal(response.status, 403);
   assert.equal(response.body.message, "Origin is not allowed.");
 });
+
+test("image uploads reject files larger than the serverless request limit", async () => {
+  const response = await request(app)
+    .post("/api/upload")
+    .attach("file", Buffer.alloc(4 * 1024 * 1024 + 1), {
+      filename: "large.png",
+      contentType: "image/png",
+    });
+
+  assert.equal(response.status, 413);
+  assert.equal(response.body.message, "Image must be 4 MB or smaller.");
+});
